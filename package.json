@@ -1,0 +1,70 @@
+{
+    "name": "@onurcipe/vitalis",
+    "version": "0.1.0",
+    "description": "Backend framework for Node.js with MongoDB and Express.",
+    "keywords": [
+        "backend",
+        "framework",
+        "nodejs",
+        "typescript",
+        "esm",
+        "mongodb",
+        "express",
+        "http",
+        "rest",
+        "api",
+        "repository",
+        "service",
+        "controller",
+        "crud"
+    ],
+    "homepage": "https://github.com/onurcipe/vitalis#readme",
+    "bugs": {
+        "url": "https://github.com/onurcipe/vitalis/issues"
+    },
+    "license": "MIT",
+    "author": "Onur Cipe <onur@onurcipe.com> (https://onurcipe.com/)",
+    "funding": {
+        "type": "individual",
+        "url": "https://onurcipe.com/donate"
+    },
+    "files": [
+        "dist",
+        "src"
+    ],
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
+    },
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "type": "module",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/onurcipe/vitalis.git"
+    },
+    "scripts": {
+        "clean:dependency": "node -e \"['package-lock.json','node_modules'].forEach(p=>require('fs').rmSync(p,{recursive:true,force:true}))\"",
+        "clean:build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+        "build": "tsc",
+        "prepublishOnly": "npm run clean:build && npm run build"
+    },
+    "dependencies": {
+        "@onurcipe/facilis": "^0.1.0",
+        "express": "^5.2.1",
+        "mongodb": "^7.4.0"
+    },
+    "devDependencies": {
+        "@types/express": "^5.0.6",
+        "@types/node": "^24.13.2",
+        "typescript": "^6.0.3"
+    },
+    "engines": {
+        "node": ">=24"
+    },
+    "publishConfig": {
+        "access": "public"
+    }
+}

@@ -1,0 +1,40 @@
+{
+    "include": [
+        "src/**/*"
+    ],
+    "compilerOptions": {
+        // Modules
+        "rootDir": "./src",
+        "types": [
+            "node"
+        ],
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+
+        // Language and Environment
+        "target": "es2024",
+        "lib": [
+            "es2024"
+        ],
+        "moduleDetection": "force",
+
+        // Emit
+        "outDir": "./dist",
+        "noEmitOnError": true,
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "removeComments": false,
+
+        // Type Checking
+        "strict": true,
+        "exactOptionalPropertyTypes": true,
+        "noUncheckedIndexedAccess": true,
+
+        // Interop Constraints
+        "verbatimModuleSyntax": true,
+
+        // Completeness
+        "skipLibCheck": true
+    }
+}
