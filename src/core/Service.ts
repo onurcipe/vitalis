@@ -646,7 +646,10 @@ class Service<
 
                     if (shouldBypassVersionProtection)
                     {
-                        identityPredicate = {[this.config.commonProperties._id]: record[this.config.commonProperties._id]} as TPredicate;
+                        identityPredicate = {
+                            [this.config.commonProperties._id]: record[this.config.commonProperties._id],
+                            [this.config.commonProperties.is_soft_deleted]: false,
+                        } as TPredicate;
 
                         mutation = {
                             ...mutation,
@@ -759,7 +762,10 @@ class Service<
 
                     if (shouldBypassVersionProtection)
                     {
-                        identityPredicate = {[this.config.commonProperties._id]: record[this.config.commonProperties._id]} as TPredicate;
+                        identityPredicate = {
+                            [this.config.commonProperties._id]: record[this.config.commonProperties._id],
+                            [this.config.commonProperties.is_soft_deleted]: false,
+                        } as TPredicate;
 
                         softDeleteMutation = {
                             $inc: {[this.config.commonProperties.version]: 1},
@@ -871,7 +877,10 @@ class Service<
 
                     if (shouldBypassVersionProtection)
                     {
-                        identityPredicate = {[this.config.commonProperties._id]: record[this.config.commonProperties._id]} as TPredicate;
+                        identityPredicate = {
+                            [this.config.commonProperties._id]: record[this.config.commonProperties._id],
+                            [this.config.commonProperties.is_soft_deleted]: false,
+                        } as TPredicate;
                     }
                     else
                     {
