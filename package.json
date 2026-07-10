@@ -1,6 +1,6 @@
 {
     "name": "@onurcipe/vitalis",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "Backend framework for Node.js with MongoDB and Express.",
     "keywords": [
         "backend",
