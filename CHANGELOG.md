@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.1] - 2026-07-10
+
+### Fixed
+
+- The identity predicate of a version-protection-bypassing operation now includes `is_soft_deleted: false`. The version gate implied this guard (a soft delete bumps the version, so a stale write could never land on a soft-deleted record); bypassing the gate had dropped the implication, letting a call that raced a soft delete update, re-soft-delete, or hard-delete an already-soft-deleted record.
+
 ## [0.2.0] - 2026-07-10
 
 ### Added
@@ -17,5 +23,6 @@
 
 - Initial release.
 
+[0.2.1]: https://github.com/onurcipe/vitalis/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/onurcipe/vitalis/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/onurcipe/vitalis/releases/tag/v0.1.0
