@@ -42,6 +42,7 @@ type ServiceOptions =
         };
         fieldSchema?: FieldSchema;
         shouldRaiseRecordExistenceErrors?: boolean;
+        shouldBypassVersionProtection?: boolean;
     };
 
 type ServiceConfig =
@@ -56,6 +57,7 @@ type ServiceConfig =
         };
         fieldSchema: FieldSchema | undefined;
         shouldRaiseRecordExistenceErrors: boolean;
+        shouldBypassVersionProtection: boolean;
     };
 
 type FieldSchema =
@@ -125,6 +127,7 @@ type UpdateOneHooks<TRecord extends Record<string, unknown> = Record<string, unk
     {
         isSessionEnabled?: boolean;
         shouldRaiseRecordExistenceErrors?: boolean;
+        shouldBypassVersionProtection?: boolean;
         shouldKeepForbiddenFields?: boolean;
         bearer?: unknown;
         beforeReadMany?: (predicate: TPredicate, session?: TSession) => Promise<void>;
@@ -149,6 +152,7 @@ type SoftDeleteOneHooks<TRecord extends Record<string, unknown> = Record<string,
     {
         isSessionEnabled?: boolean;
         shouldRaiseRecordExistenceErrors?: boolean;
+        shouldBypassVersionProtection?: boolean;
         shouldKeepForbiddenFields?: boolean;
         bearer?: unknown;
         beforeReadMany?: (predicate: TPredicate, session?: TSession) => Promise<void>;
@@ -173,6 +177,7 @@ type DeleteOneHooks<TRecord extends Record<string, unknown> = Record<string, unk
     {
         isSessionEnabled?: boolean;
         shouldRaiseRecordExistenceErrors?: boolean;
+        shouldBypassVersionProtection?: boolean;
         shouldKeepForbiddenFields?: boolean;
         bearer?: unknown;
         beforeReadMany?: (predicate: TPredicate, session?: TSession) => Promise<void>;
@@ -222,6 +227,7 @@ class Service<
             },
             fieldSchema: options.fieldSchema,
             shouldRaiseRecordExistenceErrors: options.shouldRaiseRecordExistenceErrors ?? false,
+            shouldBypassVersionProtection: options.shouldBypassVersionProtection ?? false,
         };
     }
 
@@ -619,6 +625,8 @@ class Service<
         hooks = hooks ?? {};
         hooks.bearer = hooks.bearer ?? {};
 
+        const shouldBypassVersionProtection: boolean = hooks.shouldBypassVersionProtection ?? this.config.shouldBypassVersionProtection;
+
         (predicate as Record<string, unknown>)[this.config.commonProperties.is_soft_deleted] = false;
 
         let record!: TRecord | null;
@@ -634,16 +642,36 @@ class Service<
 
                 if (isPresent(record))
                 {
-                    const recordVersion: number = record[this.config.commonProperties.version] as number;
+                    let identityPredicate: TPredicate;
 
-                    mutation = {
-                        ...mutation,
-                        [this.config.commonProperties.version]: recordVersion + 1,
-                        [this.config.commonProperties.updated_at]: new Date(),
-                    } as TMutation;
+                    if (shouldBypassVersionProtection)
+                    {
+                        identityPredicate = {[this.config.commonProperties._id]: record[this.config.commonProperties._id]} as TPredicate;
+
+                        mutation = {
+                            ...mutation,
+                            $inc: {[this.config.commonProperties.version]: 1},
+                            $currentDate: {[this.config.commonProperties.updated_at]: true},
+                        } as TMutation;
+                    }
+                    else
+                    {
+                        const recordVersion: number = record[this.config.commonProperties.version] as number;
+
+                        identityPredicate = {
+                            [this.config.commonProperties._id]: record[this.config.commonProperties._id],
+                            [this.config.commonProperties.version]: recordVersion,
+                        } as TPredicate;
+
+                        mutation = {
+                            ...mutation,
+                            [this.config.commonProperties.version]: recordVersion + 1,
+                            [this.config.commonProperties.updated_at]: new Date(),
+                        } as TMutation;
+                    }
 
                     isPresent(hooks!.beforeUpdateOne) ? await hooks!.beforeUpdateOne(record, mutation, session) : undefined;
-                    record = await this.repository.updateOne({[this.config.commonProperties._id]: record[this.config.commonProperties._id], [this.config.commonProperties.version]: recordVersion} as TPredicate, mutation, this.toContext(session));
+                    record = await this.repository.updateOne(identityPredicate, mutation, this.toContext(session));
                     isPresent(hooks!.afterUpdateOne) ? await hooks!.afterUpdateOne(record, session) : undefined;
 
                     if (!hooks!.shouldKeepForbiddenFields && isPresent(record))
@@ -709,6 +737,8 @@ class Service<
         hooks = hooks ?? {};
         hooks.bearer = hooks.bearer ?? {};
 
+        const shouldBypassVersionProtection: boolean = hooks.shouldBypassVersionProtection ?? this.config.shouldBypassVersionProtection;
+
         (predicate as Record<string, unknown>)[this.config.commonProperties.is_soft_deleted] = false;
 
         let record!: TRecord | null;
@@ -724,16 +754,37 @@ class Service<
 
                 if (isPresent(record))
                 {
-                    const recordVersion: number = record[this.config.commonProperties.version] as number;
+                    let identityPredicate: TPredicate;
+                    let softDeleteMutation: TMutation;
 
-                    const softDeleteMutation: TMutation = {
-                        [this.config.commonProperties.version]: recordVersion + 1,
-                        [this.config.commonProperties.is_soft_deleted]: true,
-                        [this.config.commonProperties.soft_deleted_at]: new Date(),
-                    } as unknown as TMutation;
+                    if (shouldBypassVersionProtection)
+                    {
+                        identityPredicate = {[this.config.commonProperties._id]: record[this.config.commonProperties._id]} as TPredicate;
+
+                        softDeleteMutation = {
+                            $inc: {[this.config.commonProperties.version]: 1},
+                            $currentDate: {[this.config.commonProperties.soft_deleted_at]: true},
+                            [this.config.commonProperties.is_soft_deleted]: true,
+                        } as unknown as TMutation;
+                    }
+                    else
+                    {
+                        const recordVersion: number = record[this.config.commonProperties.version] as number;
+
+                        identityPredicate = {
+                            [this.config.commonProperties._id]: record[this.config.commonProperties._id],
+                            [this.config.commonProperties.version]: recordVersion,
+                        } as TPredicate;
+
+                        softDeleteMutation = {
+                            [this.config.commonProperties.version]: recordVersion + 1,
+                            [this.config.commonProperties.is_soft_deleted]: true,
+                            [this.config.commonProperties.soft_deleted_at]: new Date(),
+                        } as unknown as TMutation;
+                    }
 
                     isPresent(hooks!.beforeUpdateOne) ? await hooks!.beforeUpdateOne(record, softDeleteMutation, session) : undefined;
-                    record = await this.repository.updateOne({[this.config.commonProperties._id]: record[this.config.commonProperties._id], [this.config.commonProperties.version]: recordVersion} as TPredicate, softDeleteMutation, this.toContext(session));
+                    record = await this.repository.updateOne(identityPredicate, softDeleteMutation, this.toContext(session));
                     isPresent(hooks!.afterUpdateOne) ? await hooks!.afterUpdateOne(record, session) : undefined;
 
                     if (!hooks!.shouldKeepForbiddenFields && isPresent(record))
@@ -799,6 +850,8 @@ class Service<
         hooks = hooks ?? {};
         hooks.bearer = hooks.bearer ?? {};
 
+        const shouldBypassVersionProtection: boolean = hooks.shouldBypassVersionProtection ?? this.config.shouldBypassVersionProtection;
+
         (predicate as Record<string, unknown>)[this.config.commonProperties.is_soft_deleted] = false;
 
         let record!: TRecord | null;
@@ -814,10 +867,24 @@ class Service<
 
                 if (isPresent(record))
                 {
-                    const recordVersion: number = record[this.config.commonProperties.version] as number;
+                    let identityPredicate: TPredicate;
+
+                    if (shouldBypassVersionProtection)
+                    {
+                        identityPredicate = {[this.config.commonProperties._id]: record[this.config.commonProperties._id]} as TPredicate;
+                    }
+                    else
+                    {
+                        const recordVersion: number = record[this.config.commonProperties.version] as number;
+
+                        identityPredicate = {
+                            [this.config.commonProperties._id]: record[this.config.commonProperties._id],
+                            [this.config.commonProperties.version]: recordVersion,
+                        } as TPredicate;
+                    }
 
                     isPresent(hooks!.beforeDeleteOne) ? await hooks!.beforeDeleteOne(record, session) : undefined;
-                    record = await this.repository.deleteOne({[this.config.commonProperties._id]: record[this.config.commonProperties._id], [this.config.commonProperties.version]: recordVersion} as TPredicate, this.toContext(session));
+                    record = await this.repository.deleteOne(identityPredicate, this.toContext(session));
                     isPresent(hooks!.afterDeleteOne) ? await hooks!.afterDeleteOne(record, session) : undefined;
 
                     if (!hooks!.shouldKeepForbiddenFields && isPresent(record))

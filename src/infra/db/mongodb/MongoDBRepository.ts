@@ -140,10 +140,26 @@ class MongoDBRepository<
     {
         const updateFilter: UpdateFilter<TRecord> = {};
 
+        const fieldMutation: Record<string, unknown> = {};
+
+        for (const key in mutation as Record<string, unknown>)
+        {
+            const value: unknown = (mutation as Record<string, unknown>)[key];
+
+            if (key.startsWith("$"))
+            {
+                (updateFilter as Record<string, unknown>)[key] = value;
+            }
+            else
+            {
+                fieldMutation[key] = value;
+            }
+        }
+
         const $set: Record<string, unknown> = {};
         const $unset: Record<string, unknown> = {};
 
-        const dottedMutation: MongoDBDottedObject = this.toDotNotation("update", mutation);
+        const dottedMutation: MongoDBDottedObject = this.toDotNotation("update", fieldMutation);
 
         for (const key in dottedMutation)
         {
@@ -161,12 +177,18 @@ class MongoDBRepository<
 
         if (isPopulated($set))
         {
-            updateFilter.$set = $set as unknown as NonNullable<UpdateFilter<TRecord>["$set"]>;
+            updateFilter.$set = {
+                ...updateFilter.$set,
+                ...$set,
+            } as unknown as NonNullable<UpdateFilter<TRecord>["$set"]>;
         }
 
         if (isPopulated($unset))
         {
-            updateFilter.$unset = $unset as unknown as NonNullable<UpdateFilter<TRecord>["$unset"]>;
+            updateFilter.$unset = {
+                ...updateFilter.$unset,
+                ...$unset,
+            } as unknown as NonNullable<UpdateFilter<TRecord>["$unset"]>;
         }
 
         return updateFilter;
